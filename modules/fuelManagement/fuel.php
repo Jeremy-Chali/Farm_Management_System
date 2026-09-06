@@ -62,6 +62,7 @@ $edit_data = null;
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
     $edit_id = intval($_GET['id']);
     $stmt = $conn->prepare("SELECT * FROM fuel_logs WHERE id = ?");
+    $stmt->bind_param("i", $edit_id);
     $stmt->execute();
     $res = $stmt->get_result();
     if ($res) {
@@ -157,218 +158,198 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             --primary-dark: #123529;
             --accent: #2e8b57;
             --light-bg: #f4f7f5;
-            --text-dark: #2c3e50;
-            --text-light: #6c757d;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
             --white: #ffffff;
-            --border: #e2e8f0;
-            --danger: #d9534f;
-            --transition: all 0.3s ease;
+            --border: #cbd5e1;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #0284c7;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { color: var(--text-dark); background-color: var(--light-bg); padding: 25px 4%; font-size: 0.9rem; line-height: 1.5; }
 
-        body {
-            color: var(--text-dark);
-            background-color: var(--light-bg);
-            line-height: 1.6;
-            padding: 30px 6%;
-        }
-
+        /* Top Bar & Header Navigation */
         .header-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .header-nav a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        /* Analytics Grid */
-        .analytics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--white);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        }
-
-        .stat-card small {
-            color: var(--text-light);
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .stat-card h3 {
-            color: var(--primary-dark);
+        .header-nav h1 {
             font-size: 1.6rem;
-            margin-top: 5px;
-        }
-
-        /* Main Workspace */
-        .workspace {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 30px;
-            align-items: start;
-        }
-
-        .card {
-            background: var(--white);
-            padding: 25px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        }
-
-        h2, h3 {
             color: var(--primary-dark);
-            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
-        /* Alerts */
-        .alert {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-weight: 500;
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
         }
 
-        .alert-success { background: #e8f5e9; color: var(--primary-dark); border-left: 4px solid var(--accent); }
-        .alert-error { background: #ffebee; color: var(--danger); border-left: 4px solid var(--danger); }
-
-        /* Form Controls */
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            background-color: var(--white);
+            color: var(--primary-dark);
             font-weight: 600;
             font-size: 0.85rem;
-            margin-bottom: 6px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px 12px;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.95rem;
-            outline: none;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
         }
 
-        input:focus, select:focus {
-            border-color: var(--accent);
+        .btn-back svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.2s ease-in-out;
         }
 
-        .btn {
+        .btn-back:hover {
             background-color: var(--primary);
             color: var(--white);
-            border: none;
-            padding: 10px 16px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
+            border-color: var(--primary);
+            box-shadow: 0 4px 10px rgba(27, 77, 62, 0.15);
+            transform: translateY(-1px);
         }
 
+        .btn-back:hover svg {
+            transform: translateX(-3px);
+        }
+
+        /* Operational Mode Navigation Tabs */
+        .nav-tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+        .tab-item {
+            padding: 10px 18px; font-weight: 600; color: var(--text-light); border: none;
+            background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+            white-space: nowrap; font-size: 0.88rem;
+        }
+        .tab-item.active { color: var(--primary); border-color: var(--primary); }
+
+        /* KPI Analytics Ribbon */
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card {
+            background: var(--white); padding: 16px; border-radius: 8px; border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .stat-card small { color: var(--text-light); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card h3 { color: var(--primary-dark); font-size: 1.5rem; margin-top: 4px; font-weight: 700; }
+
+        /* Main Workspace Split Screen */
+        .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 25px; align-items: start; }
+        .card { background: var(--white); padding: 22px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        h2 { color: var(--primary-dark); margin-bottom: 18px; font-size: 1.15rem; font-weight: 700; }
+
+        /* Alerts */
+        .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 18px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: #e8f5e9; color: #1b5e20; border-left: 4px solid var(--accent); }
+        .alert-error { background: #ffebee; color: #c62828; border-left: 4px solid var(--danger); }
+
+        /* Form Controls & Inputs */
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-dark); }
+        input, select {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.88rem; outline: none; background: #fff;
+        }
+        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.12); }
+
+        /* Buttons & Actions */
+        .btn {
+            background-color: var(--primary); color: var(--white); border: none; padding: 9px 15px;
+            font-size: 0.85rem; font-weight: 600; border-radius: 6px; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+        }
         .btn:hover { background-color: var(--primary-dark); }
         .btn-secondary { background: #e2e8f0; color: var(--text-dark); }
         .btn-secondary:hover { background: #cbd5e1; }
         .btn-danger { background: var(--danger); }
-        .btn-danger:hover { background: #c9302c; }
+        .btn-danger:hover { background: #dc2626; }
 
-        /* Filter Controls Bar */
+        /* Filter Toolbar */
         .filter-bar {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            margin-bottom: 20px;
-            background: var(--light-bg);
-            padding: 15px;
-            border-radius: 8px;
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+            margin-bottom: 18px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border);
         }
-
-        .filter-bar .form-group {
-            margin-bottom: 0;
-            flex: 1;
-            min-width: 140px;
-        }
+        .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 140px; }
 
         /* Table Styling */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+        th { background: #f8fafc; color: var(--primary-dark); font-weight: 700; }
+        tr:hover { background: #f1f5f9; }
 
-        th, td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-        }
+        .btn-sm { padding: 5px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 4px; border: none; cursor: pointer; text-decoration: none; }
+        .actions { display: flex; gap: 6px; }
 
-        th { background: var(--light-bg); color: var(--primary-dark); }
-        tr:hover { background: #fafdfb; }
-
-        .actions { display: flex; gap: 8px; }
-
-        @media (max-width: 900px) {
+        @media (max-width: 992px) {
             .workspace { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
+    <!-- Header Navigation with Styled Back & Export Buttons -->
     <div class="header-nav">
-        <a href="/Farm_Management_System/index.php">&larr; Back to Main Dashboard</a>
-        <a href="fuel.php?export=csv<?php echo !empty($_SERVER['QUERY_STRING']) ? '&' . htmlspecialchars($_SERVER['QUERY_STRING']) : ''; ?>" class="btn btn-secondary">Export to CSV</a>
+        <h1>Fuel Operations & Dispensary</h1>
+        <div class="header-actions">
+            <a href="fuel.php?export=csv<?php echo !empty($_SERVER['QUERY_STRING']) ? '&' . htmlspecialchars($_SERVER['QUERY_STRING']) : ''; ?>" class="btn btn-secondary">Export CSV</a>
+            <a href="/Farm_Management_System/index.php" class="btn-back">
+                <svg viewBox="0 0 24 24">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Return to Dashboard
+            </a>
+        </div>
     </div>
 
-    <!-- Analytics Dashboard Cards -->
+    <!-- Navigation Context Tabs -->
+    <div class="nav-tabs">
+        <button class="tab-item active">Dispensary Audit Log</button>
+        <button class="tab-item">Fuel Tank Inventory</button>
+        <button class="tab-item">Burn Rates & Efficiency</button>
+    </div>
+
+    <!-- Analytics Operational Bar -->
     <div class="analytics-grid">
         <div class="stat-card">
-            <small>Total Spent</small>
-            <h3><?= number_format($total_spent, 2) ?> kwacha</h3>
+            <small>Total Expenditure</small>
+            <h3><?= number_format($total_spent, 2) ?> <span style="font-size:0.85rem; font-weight:normal; color:var(--text-light);">ZMW</span></h3>
         </div>
         <div class="stat-card">
-            <small>Total Fuel Consumed</small>
-            <h3><?= number_format($total_litres, 2) ?> L</h3>
+            <small>Total Fuel Volume</small>
+            <h3><?= number_format($total_litres, 2) ?> <span style="font-size:0.85rem; font-weight:normal; color:var(--text-light);">L</span></h3>
         </div>
         <div class="stat-card">
-            <small>Average Cost / Litre</small>
-            <h3><?= number_format($avg_cost_per_litre, 2) ?> kwacha</h3>
+            <small>Average Price / Litre</small>
+            <h3><?= number_format($avg_cost_per_litre, 2) ?> <span style="font-size:0.85rem; font-weight:normal; color:var(--text-light);">ZMW/L</span></h3>
         </div>
         <div class="stat-card">
-            <small>Total Logs Recorded</small>
-            <h3><?= $log_count ?></h3>
+            <small>Dispensary Records</small>
+            <h3><?= $log_count ?> <span style="font-size:0.85rem; font-weight:normal; color:var(--text-light);">Entries</span></h3>
         </div>
     </div>
 
     <div class="workspace">
-        <!-- Entry / Edit Form -->
+        <!-- Entry / Edit Form Sidebar -->
         <div class="card">
-            <h2><?= $edit_data ? 'Edit Fuel Log' : 'Record Fuel Usage' ?></h2>
+            <h2><?= $edit_data ? 'Edit Fuel Record' : 'Record Fuel Usage' ?></h2>
             
             <?php if($message): ?><div class="alert alert-success"><?= $message ?></div><?php endif; ?>
             <?php if($error): ?><div class="alert alert-error"><?= $error ?></div><?php endif; ?>
@@ -379,7 +360,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <?php endif; ?>
 
                 <div class="form-group">
-                    <label>Equipment:</label>
+                    <label>Target Equipment *</label>
                     <select name="equipment_id" required>
                         <?php foreach($equipment as $eq): ?>
                             <option value="<?= $eq['id'] ?>" <?= ($edit_data && $edit_data['equipment_id'] == $eq['id']) ? 'selected' : '' ?>>
@@ -390,36 +371,36 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
 
                 <div class="form-group">
-                    <label>Litres Consumed (L):</label>
-                    <input type="number" step="0.01" name="litres_consumed" value="<?= $edit_data ? $edit_data['litres_consumed'] : '' ?>" required>
+                    <label>Volume Consumed (Litres) *</label>
+                    <input type="number" step="0.01" name="litres_consumed" placeholder="e.g. 55.00" value="<?= $edit_data ? $edit_data['litres_consumed'] : '' ?>" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Total Cost (kwacha):</label>
-                    <input type="number" step="0.01" name="total_cost" value="<?= $edit_data ? $edit_data['total_cost'] : '' ?>" required>
+                    <label>Total Cost (kwacha) *</label>
+                    <input type="number" step="0.01" name="total_cost" placeholder="e.g. 1200.00" value="<?= $edit_data ? $edit_data['total_cost'] : '' ?>" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Log Date:</label>
+                    <label>Dispense Date *</label>
                     <input type="date" name="log_date" value="<?= $edit_data ? $edit_data['log_date'] : date('Y-m-d') ?>" required>
                 </div>
 
-                <button type="submit" class="btn" style="width: 100%;"><?= $edit_data ? 'Update Entry' : 'Save Entry' ?></button>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 5px;"><?= $edit_data ? 'Update Entry' : 'Save Fuel Log' ?></button>
                 <?php if($edit_data): ?>
                     <a href="fuel.php" class="btn btn-secondary" style="width: 100%; margin-top: 8px;">Cancel Edit</a>
                 <?php endif; ?>
             </form>
         </div>
 
-        <!-- History & Search View -->
+        <!-- Audit Log Grid -->
         <div class="card">
-            <h2>Fuel Audit Log</h2>
+            <h2>Fuel Audit & Dispensing Log</h2>
 
-            <!-- Filter Toolbar -->
+            <!-- Search and Date Filter Toolbar -->
             <form method="GET" action="fuel.php" class="filter-bar">
                 <div class="form-group">
                     <label>Search Machine:</label>
-                    <input type="text" name="search" placeholder="e.g. Tractor" value="<?= htmlspecialchars($search) ?>">
+                    <input type="text" name="search" placeholder="Search equipment..." value="<?= htmlspecialchars($search) ?>">
                 </div>
                 <div class="form-group">
                     <label>From Date:</label>
@@ -435,38 +416,43 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
             </form>
 
-            <!-- Data Table -->
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Equipment</th>
-                        <th>Litres</th>
-                        <th>Cost</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($fuel_logs)): ?>
-                        <?php foreach($fuel_logs as $fuel): ?>
+            <!-- Fuel Log Data Table -->
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
                         <tr>
-                            <td><?= htmlspecialchars($fuel['log_date']) ?></td>
-                            <td><?= htmlspecialchars($fuel['eq_name']) ?></td>
-                            <td><?= number_format($fuel['litres_consumed'], 2) ?> L</td>
-                            <td><?= number_format($fuel['total_cost'], 2) ?> kwacha</td>
-                            <td class="actions">
-                                <a href="fuel.php?action=edit&id=<?= $fuel['id'] ?>" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Edit</a>
-                                <a href="fuel.php?action=delete&id=<?= $fuel['id'] ?>" onclick="return confirm('Are you sure you want to delete this record?');" class="btn btn-danger" style="padding: 4px 10px; font-size: 0.8rem;">Delete</a>
-                            </td>
+                            <th>Log Date</th>
+                            <th>Equipment Asset</th>
+                            <th>Volume (L)</th>
+                            <th>Total Cost</th>
+                            <th>Unit Rate</th>
+                            <th>Actions</th>
                         </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-light);">No records found matching your criteria.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($fuel_logs)): ?>
+                            <?php foreach($fuel_logs as $fuel): ?>
+                            <?php $unit_rate = $fuel['litres_consumed'] > 0 ? ($fuel['total_cost'] / $fuel['litres_consumed']) : 0; ?>
+                            <tr>
+                                <td><strong><?= htmlspecialchars($fuel['log_date']) ?></strong></td>
+                                <td><?= htmlspecialchars($fuel['eq_name']) ?></td>
+                                <td><strong><?= number_format($fuel['litres_consumed'], 2) ?> L</strong></td>
+                                <td><?= number_format($fuel['total_cost'], 2) ?> kwacha</td>
+                                <td><small style="color:var(--text-light);"><?= number_format($unit_rate, 2) ?> ZMW/L</small></td>
+                                <td class="actions">
+                                    <a href="fuel.php?action=edit&id=<?= $fuel['id'] ?>" class="btn-sm btn-secondary">Edit</a>
+                                    <a href="fuel.php?action=delete&id=<?= $fuel['id'] ?>" onclick="return confirm('Are you sure you want to delete this fuel record?');" class="btn-sm btn-danger">Delete</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-light); padding: 25px;">No fuel logs found matching your criteria.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
