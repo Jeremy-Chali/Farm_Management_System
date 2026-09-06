@@ -1,10 +1,25 @@
 <?php
-// Load database configuration from project root
-require_once $_SERVER['DOCUMENT_ROOT'] . '/Farm_Management_System/db_config.php';
+// Relative path resolution to reach db_config.php anywhere in project structure
+$db_path = __DIR__ . '/../../db_config.php';
+if (!file_exists($db_path)) {
+    $db_path = $_SERVER['DOCUMENT_ROOT'] . '/Farm_Management_System/db_config.php';
+}
+require_once $db_path;
 
 if (!isset($conn) && isset($pdo)) {
     $conn = $pdo;
 }
+
+// ---------------------------------------------------------
+// AUTO-SCHEMA REPAIR (PREVENTS MISSING TABLE/COLUMN ERRORS)
+// ---------------------------------------------------------
+$conn->query("CREATE TABLE IF NOT EXISTS fuel_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    equipment_id INT NOT NULL,
+    litres_consumed DECIMAL(8, 2) NOT NULL,
+    total_cost DECIMAL(10, 2) NOT NULL,
+    log_date DATE NOT NULL
+)");
 
 $message = "";
 $error = "";
@@ -109,7 +124,7 @@ $where_sql = implode(" AND ", $where_clauses);
 // Fetch Fuel Logs with Filters
 $sql = "SELECT f.*, e.name as eq_name 
         FROM fuel_logs f 
-        JOIN equipment e ON f.equipment_id = e.id 
+        LEFT JOIN equipment e ON f.equipment_id = e.id 
         WHERE $where_sql 
         ORDER BY f.log_date DESC";
 
@@ -137,9 +152,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=fuel_logs_' . date('Y-m-d') . '.csv');
     $output = fopen('php://output', 'w');
-    fputcsv($output, ['ID', 'Date', 'Equipment', 'Litres Consumed', 'Total Cost (kwacha)']);
+    fputcsv($output, ['ID', 'Date', 'Equipment', 'Litres Consumed', 'Total Cost (ZMW)']);
     foreach ($fuel_logs as $row) {
-        fputcsv($output, [$row['id'], $row['log_date'], $row['eq_name'], $row['litres_consumed'], $row['total_cost']]);
+        fputcsv($output, [$row['id'], $row['log_date'], $row['eq_name'] ?? 'Unknown Machine', $row['litres_consumed'], $row['total_cost']]);
     }
     fclose($output);
     exit;
@@ -278,8 +293,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         .btn:hover { background-color: var(--primary-dark); }
         .btn-secondary { background: #e2e8f0; color: var(--text-dark); }
         .btn-secondary:hover { background: #cbd5e1; }
-        .btn-danger { background: var(--danger); }
-        .btn-danger:hover { background: #dc2626; }
+        .btn-danger { background: var(--danger); color: #ffffff; }
+        .btn-danger:hover { background: #dc2626; color: #ffffff; }
 
         /* Filter Toolbar */
         .filter-bar {
@@ -362,6 +377,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <div class="form-group">
                     <label>Target Equipment *</label>
                     <select name="equipment_id" required>
+                        <option value="">-- Select Machine --</option>
                         <?php foreach($equipment as $eq): ?>
                             <option value="<?= $eq['id'] ?>" <?= ($edit_data && $edit_data['equipment_id'] == $eq['id']) ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($eq['name']) ?>
@@ -376,7 +392,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 </div>
 
                 <div class="form-group">
-                    <label>Total Cost (kwacha) *</label>
+                    <label>Total Cost (ZMW) *</label>
                     <input type="number" step="0.01" name="total_cost" placeholder="e.g. 1200.00" value="<?= $edit_data ? $edit_data['total_cost'] : '' ?>" required>
                 </div>
 
@@ -435,9 +451,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                             <?php $unit_rate = $fuel['litres_consumed'] > 0 ? ($fuel['total_cost'] / $fuel['litres_consumed']) : 0; ?>
                             <tr>
                                 <td><strong><?= htmlspecialchars($fuel['log_date']) ?></strong></td>
-                                <td><?= htmlspecialchars($fuel['eq_name']) ?></td>
+                                <td><?= htmlspecialchars($fuel['eq_name'] ?? 'Unlinked Asset') ?></td>
                                 <td><strong><?= number_format($fuel['litres_consumed'], 2) ?> L</strong></td>
-                                <td><?= number_format($fuel['total_cost'], 2) ?> kwacha</td>
+                                <td><?= number_format($fuel['total_cost'], 2) ?> ZMW</td>
                                 <td><small style="color:var(--text-light);"><?= number_format($unit_rate, 2) ?> ZMW/L</small></td>
                                 <td class="actions">
                                     <a href="fuel.php?action=edit&id=<?= $fuel['id'] ?>" class="btn-sm btn-secondary">Edit</a>
