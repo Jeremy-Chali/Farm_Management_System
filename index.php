@@ -213,7 +213,7 @@
         <a href="/Farm_Management_System/index.php" class="logo">Lima Digital</a>
         <ul class="nav-links">
             <li><a href="/Farm_Management_System/modules/machineryReg/machinery.php">Machinery Registry</a></li>
-            <li><a href="/Farm_Management_System/modules/equipmentAllocation.php">Field Operations</a></li>
+            <li><a href="/Farm_Management_System/modules/equipmentAllocation/equipment.php">Field Operations</a></li>
             <li><a href="/Farm_Management_System/modules/maintenanceRepairs.php">Maintenance</a></li>
             <li><a href="/Farm_Management_System/modules/fuelManagement/fuel.php">Fuel Logs</a></li>
             <li><a href="/Farm_Management_System/login.php" class="btn-nav">System Portal</a></li>
@@ -223,7 +223,7 @@
     <!-- Hero Section -->
     <header class="hero">
         <div class="hero-content">
-            <h1>Intelligent Farm Management Made Seamless</h1>
+            <h1>Farm Management Made Seamless</h1>
             <p>Centralize your agricultural operations, track heavy machinery depreciation, log operating hours, automate maintenance schedules, and boost farm productivity through data-driven decisions.</p>
         </div>
         

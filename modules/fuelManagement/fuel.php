@@ -1,5 +1,4 @@
 <?php
-// Relative path resolution to reach db_config.php anywhere in project structure
 $db_path = __DIR__ . '/../../db_config.php';
 if (!file_exists($db_path)) {
     $db_path = $_SERVER['DOCUMENT_ROOT'] . '/Farm_Management_System/db_config.php';
@@ -10,9 +9,6 @@ if (!isset($conn) && isset($pdo)) {
     $conn = $pdo;
 }
 
-// ---------------------------------------------------------
-// AUTO-SCHEMA REPAIR (PREVENTS MISSING TABLE/COLUMN ERRORS)
-// ---------------------------------------------------------
 $conn->query("CREATE TABLE IF NOT EXISTS fuel_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     equipment_id INT NOT NULL,
@@ -23,10 +19,6 @@ $conn->query("CREATE TABLE IF NOT EXISTS fuel_logs (
 
 $message = "";
 $error = "";
-
-// ---------------------------------------------------------
-// 1. HANDLE POST ACTIONS (CREATE, EDIT, DELETE)
-// ---------------------------------------------------------
 
 // Delete Record
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
