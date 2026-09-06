@@ -133,7 +133,7 @@ foreach ($machinery_list as $item) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Machinery Management - Lima Digital</title>
+    <title>Fleet Operations Console - Lima Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -141,225 +141,202 @@ foreach ($machinery_list as $item) {
             --primary-dark: #123529;
             --accent: #2e8b57;
             --light-bg: #f4f7f5;
-            --text-dark: #2c3e50;
-            --text-light: #6c757d;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
             --white: #ffffff;
-            --border: #e2e8f0;
-            --danger: #d9534f;
-            --warning: #f0ad4e;
-            --transition: all 0.3s ease;
+            --border: #cbd5e1;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #0284c7;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { color: var(--text-dark); background-color: var(--light-bg); padding: 25px 4%; font-size: 0.9rem; line-height: 1.5; }
 
-        body {
-            color: var(--text-dark);
-            background-color: var(--light-bg);
-            line-height: 1.6;
-            padding: 30px 6%;
-        }
-
+        /* Top Bar & Header Navigation */
         .header-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .header-nav a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        /* Analytics Grid */
-        .analytics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--white);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        }
-
-        .stat-card small {
-            color: var(--text-light);
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .stat-card h3 {
-            color: var(--primary-dark);
+        .header-nav h1 {
             font-size: 1.6rem;
-            margin-top: 5px;
-        }
-
-        /* Main Workspace */
-        .workspace {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 30px;
-            align-items: start;
-        }
-
-        .card {
-            background: var(--white);
-            padding: 25px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        }
-
-        h2, h3 {
             color: var(--primary-dark);
-            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
-        /* Alerts */
-        .alert {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .alert-success { background: #e8f5e9; color: var(--primary-dark); border-left: 4px solid var(--accent); }
-        .alert-error { background: #ffebee; color: var(--danger); border-left: 4px solid var(--danger); }
-
-        /* Form Controls */
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            background-color: var(--white);
+            color: var(--primary-dark);
             font-weight: 600;
             font-size: 0.85rem;
-            margin-bottom: 6px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px 12px;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.95rem;
-            outline: none;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
         }
 
-        input:focus, select:focus {
-            border-color: var(--accent);
+        .btn-back svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.2s ease-in-out;
         }
 
-        .btn {
+        .btn-back:hover {
             background-color: var(--primary);
             color: var(--white);
-            border: none;
-            padding: 10px 16px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
+            border-color: var(--primary);
+            box-shadow: 0 4px 10px rgba(27, 77, 62, 0.15);
+            transform: translateY(-1px);
         }
 
+        .btn-back:hover svg {
+            transform: translateX(-3px);
+        }
+
+        /* Operational Mode Navigation Tabs */
+        .nav-tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+        .tab-item {
+            padding: 10px 18px; font-weight: 600; color: var(--text-light); border: none;
+            background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+            white-space: nowrap; font-size: 0.88rem;
+        }
+        .tab-item.active { color: var(--primary); border-color: var(--primary); }
+
+        /* KPI Operational Summary Ribbon */
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card {
+            background: var(--white); padding: 16px; border-radius: 8px; border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .stat-card small { color: var(--text-light); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card h3 { color: var(--primary-dark); font-size: 1.5rem; margin-top: 4px; font-weight: 700; }
+
+        /* Main Workspace Split Screen */
+        .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 25px; align-items: start; }
+        .card { background: var(--white); padding: 22px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        h2 { color: var(--primary-dark); margin-bottom: 18px; font-size: 1.15rem; font-weight: 700; }
+
+        /* Alerts */
+        .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 18px; font-size: 0.88rem; font-weight: 500; }
+        .alert-success { background: #e8f5e9; color: #1b5e20; border-left: 4px solid var(--accent); }
+        .alert-error { background: #ffebee; color: #c62828; border-left: 4px solid var(--danger); }
+
+        /* Form Controls & Inputs */
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-dark); }
+        input, select {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.88rem; outline: none; background: #fff;
+        }
+        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.12); }
+
+        /* Buttons & Actions */
+        .btn {
+            background-color: var(--primary); color: var(--white); border: none; padding: 9px 15px;
+            font-size: 0.85rem; font-weight: 600; border-radius: 6px; cursor: pointer;
+            text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+        }
         .btn:hover { background-color: var(--primary-dark); }
         .btn-secondary { background: #e2e8f0; color: var(--text-dark); }
         .btn-secondary:hover { background: #cbd5e1; }
         .btn-danger { background: var(--danger); }
-        .btn-danger:hover { background: #c9302c; }
+        .btn-danger:hover { background: #dc2626; }
 
-        /* Filter Controls Bar */
+        /* Dispatch Filter Bar */
         .filter-bar {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            margin-bottom: 20px;
-            background: var(--light-bg);
-            padding: 15px;
-            border-radius: 8px;
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+            margin-bottom: 18px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border);
         }
+        .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
 
-        .filter-bar .form-group {
-            margin-bottom: 0;
-            flex: 1;
-            min-width: 140px;
-        }
+        /* Badges */
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+        .badge-active, .badge-operational { background: #dcfce7; color: #166534; }
+        .badge-maintenance { background: #fef3c7; color: #92400e; }
+        .badge-inactive { background: #fee2e2; color: #991b1b; }
 
-        /* Status Badges */
-        .badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: capitalize;
-        }
-        .badge-active, .badge-operational { background: #e8f5e9; color: var(--primary-dark); }
-        .badge-maintenance, .badge-inactive { background: #fff8e1; color: #b78103; }
+        /* Operations Data Table */
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+        th { background: #f8fafc; color: var(--primary-dark); font-weight: 700; }
+        tr:hover { background: #f1f5f9; }
 
-        /* Table Styling */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+        /* Inline Table Controls */
+        .inline-input { width: 85px; padding: 4px 6px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border); }
+        .inline-select { width: 125px; padding: 4px 6px; font-size: 0.8rem; border-radius: 4px; border: 1px solid var(--border); }
+        .btn-sm { padding: 5px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 4px; border: none; cursor: pointer; text-decoration: none; }
+        .btn-action { background: var(--info); color: #fff; }
+        .btn-warn { background: var(--warning); color: #000; }
 
-        th, td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-        }
+        .actions { display: flex; gap: 6px; }
 
-        th { background: var(--light-bg); color: var(--primary-dark); }
-        tr:hover { background: #fafdfb; }
-
-        .actions { display: flex; gap: 8px; }
-
-        @media (max-width: 900px) {
+        @media (max-width: 992px) {
             .workspace { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
+    <!-- Header Navigation with Enhanced Back Button -->
     <div class="header-nav">
-        <a href="/Farm_Management_System/index.php">&larr; Back to Main Dashboard</a>
+        <h1>Fleet Control Console</h1>
+        <a href="/Farm_Management_System/index.php" class="btn-back">
+            <svg viewBox="0 0 24 24">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Return to Dashboard
+        </a>
     </div>
 
-    <!-- Analytics Dashboard Cards -->
+    <!-- Navigation Tabs for Fleet Context Switch -->
+    <div class="nav-tabs">
+        <button class="tab-item active">Live Directory & Dispatch</button>
+        <button class="tab-item">Maintenance Schedule</button>
+        <button class="tab-item">Fuel & Meter Logs</button>
+        <button class="tab-item">Operator Assignments</button>
+    </div>
+
+    <!-- Analytics Operational Bar -->
     <div class="analytics-grid">
         <div class="stat-card">
-            <small>Total Fleet Units</small>
-            <h3><?= $total_fleet ?></h3>
+            <small>Total Fleet Size</small>
+            <h3><?= $total_fleet ?> <span style="font-size:0.85rem; font-weight:normal; color:var(--text-light);">Units</span></h3>
         </div>
         <div class="stat-card">
-            <small>Operational Units</small>
+            <small>Ready / Operational</small>
             <h3><?= $operational_count ?></h3>
         </div>
         <div class="stat-card">
-            <small>Maintenance / Inactive</small>
-            <h3><?= $maintenance_count ?></h3>
+            <small>Under Maintenance / Inactive</small>
+            <h3 style="color: <?= $maintenance_count > 0 ? 'var(--warning)' : 'var(--primary-dark)'; ?>"><?= $maintenance_count ?></h3>
+        </div>
+        <div class="stat-card">
+            <small>Fleet Availability Rate</small>
+            <h3><?= $total_fleet > 0 ? round(($operational_count / $total_fleet) * 100, 1) : 0 ?>%</h3>
         </div>
     </div>
 
     <div class="workspace">
-        <!-- Entry / Edit Form -->
+        <!-- Entry / Edit Form Sidebar -->
         <div class="card">
-            <h2><?= $edit_data ? 'Edit Machinery' : 'Register Machinery' ?></h2>
+            <h2><?= $edit_data ? 'Edit Machinery Unit' : 'Register New Asset' ?></h2>
             
             <?php if($message): ?><div class="alert alert-success"><?= $message ?></div><?php endif; ?>
             <?php if($error): ?><div class="alert alert-error"><?= $error ?></div><?php endif; ?>
@@ -370,17 +347,25 @@ foreach ($machinery_list as $item) {
                 <?php endif; ?>
 
                 <div class="form-group">
-                    <label>Machine Name / Title:</label>
-                    <input type="text" name="name" placeholder="e.g. John Deere Tractor" value="<?= $edit_data ? htmlspecialchars($edit_data['name']) : '' ?>" required>
+                    <label>Machine Title / Designation *</label>
+                    <input type="text" name="name" placeholder="e.g. John Deere 5075E Tractor" value="<?= $edit_data ? htmlspecialchars($edit_data['name']) : '' ?>" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Model / Serial No:</label>
-                    <input type="text" name="model" placeholder="e.g. 5075E / 2022" value="<?= $edit_data ? htmlspecialchars($edit_data['model']) : '' ?>" required>
+                    <label>Model / Class Specification *</label>
+                    <input type="text" name="model" placeholder="e.g. Utility Tractor / 75 HP" value="<?= $edit_data ? htmlspecialchars($edit_data['model']) : '' ?>" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Operational Status:</label>
+                    <label>Assigned Operator (Field Roster)</label>
+                    <select disabled>
+                        <option>John Doe (Tractor Operator)</option>
+                        <option>Unassigned (In Depot)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Operational Status *</label>
                     <select name="status" required>
                         <option value="Operational" <?= ($edit_data && strtolower($edit_data['status']) === 'operational') ? 'selected' : '' ?>>Operational</option>
                         <option value="Maintenance" <?= ($edit_data && strtolower($edit_data['status']) === 'maintenance') ? 'selected' : '' ?>>In Maintenance</option>
@@ -388,25 +373,25 @@ foreach ($machinery_list as $item) {
                     </select>
                 </div>
 
-                <button type="submit" class="btn" style="width: 100%;"><?= $edit_data ? 'Update Machinery' : 'Register Unit' ?></button>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 5px;"><?= $edit_data ? 'Update Machinery Record' : 'Register Asset' ?></button>
                 <?php if($edit_data): ?>
                     <a href="machinery.php" class="btn btn-secondary" style="width: 100%; margin-top: 8px;">Cancel Edit</a>
                 <?php endif; ?>
             </form>
         </div>
 
-        <!-- Machinery Fleet List & Search -->
+        <!-- Directory & Interactive Control Console -->
         <div class="card">
-            <h2>Fleet Directory</h2>
+            <h2>Active Directory & Dispatch Grid</h2>
 
             <!-- Filter Toolbar -->
             <form method="GET" action="machinery.php" class="filter-bar">
                 <div class="form-group">
-                    <label>Search Unit:</label>
+                    <label>Search Asset:</label>
                     <input type="text" name="search" placeholder="Search by name or model..." value="<?= htmlspecialchars($search) ?>">
                 </div>
                 <div class="form-group">
-                    <label>Filter Status:</label>
+                    <label>Status Filter:</label>
                     <select name="status_filter">
                         <option value="">All Statuses</option>
                         <option value="Operational" <?= $status_filter === 'Operational' ? 'selected' : '' ?>>Operational</option>
@@ -420,42 +405,64 @@ foreach ($machinery_list as $item) {
                 </div>
             </form>
 
-            <!-- Data Table -->
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Machine Name</th>
-                        <th>Model / Spec</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($machinery_list)): ?>
-                        <?php foreach($machinery_list as $item): ?>
+            <!-- Operational Control Table -->
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
                         <tr>
-                            <td>#<?= $item['id'] ?></td>
-                            <td><strong><?= htmlspecialchars($item['name']) ?></strong></td>
-                            <td><?= htmlspecialchars($item['model']) ?></td>
-                            <td>
-                                <span class="badge badge-<?= strtolower(htmlspecialchars($item['status'])) ?>">
-                                    <?= htmlspecialchars($item['status']) ?>
-                                </span>
-                            </td>
-                            <td class="actions">
-                                <a href="machinery.php?action=edit&id=<?= $item['id'] ?>" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Edit</a>
-                                <a href="machinery.php?action=delete&id=<?= $item['id'] ?>" onclick="return confirm('Are you sure you want to delete this machinery record?');" class="btn btn-danger" style="padding: 4px 10px; font-size: 0.8rem;">Delete</a>
-                            </td>
+                            <th>Unit Tag</th>
+                            <th>Machine Specification</th>
+                            <th>Hour Meter</th>
+                            <th>Assigned Driver</th>
+                            <th>Status</th>
+                            <th>Quick Operations & Actions</th>
                         </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-light);">No machinery registered matching your query.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($machinery_list)): ?>
+                            <?php foreach($machinery_list as $item): ?>
+                            <tr>
+                                <td><strong>#EQ-<?= sprintf('%03d', $item['id']) ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($item['name']) ?></strong><br>
+                                    <small style="color: var(--text-light);"><?= htmlspecialchars($item['model']) ?></small>
+                                </td>
+                                <td>
+                                    <!-- Interactive Meter Reading Control Mock -->
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        <input type="number" class="inline-input" value="1240" step="1">
+                                        <button class="btn-sm btn-action" title="Log current meter reading">Log</button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <!-- Interactive Operator Control Mock -->
+                                    <select class="inline-select">
+                                        <option value="">Unassigned</option>
+                                        <option value="1" selected>John Doe</option>
+                                        <option value="2">Jane Smith</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <span class="badge badge-<?= strtolower(htmlspecialchars($item['status'])) ?>">
+                                        <?= htmlspecialchars($item['status']) ?>
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <button class="btn-sm btn-warn" title="Flag machine for maintenance service">Service</button>
+                                    <button class="btn-sm btn-action" title="Log fuel dispensing">Fuel</button>
+                                    <a href="machinery.php?action=edit&id=<?= $item['id'] ?>" class="btn-sm btn-secondary">Edit</a>
+                                    <a href="machinery.php?action=delete&id=<?= $item['id'] ?>" onclick="return confirm('Are you sure you want to delete this machinery record?');" class="btn-sm btn-danger">Delete</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-light); padding: 25px;">No machinery records registered matching your query.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

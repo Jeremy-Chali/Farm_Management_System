@@ -208,13 +208,13 @@
 </head>
 <body>
 
-    <!-- Navigation Header -->
+    <!-- Nav Bar -->
     <nav>
         <a href="/Farm_Management_System/index.php" class="logo">Lima Digital</a>
         <ul class="nav-links">
-            <li><a href="/Farm_Management_System/machinery_registry.php">Machinery Registry</a></li>
-            <li><a href="/Farm_Management_System/equipment_allocation.php">Field Operations</a></li>
-            <li><a href="/Farm_Management_System/maintenance_repairs.php">Maintenance</a></li>
+            <li><a href="/Farm_Management_System/modules/machineryReg/machinery.php">Machinery Registry</a></li>
+            <li><a href="/Farm_Management_System/modules/equipmentAllocation.php">Field Operations</a></li>
+            <li><a href="/Farm_Management_System/modules/maintenanceRepairs.php">Maintenance</a></li>
             <li><a href="/Farm_Management_System/modules/fuelManagement/fuel.php">Fuel Logs</a></li>
             <li><a href="/Farm_Management_System/login.php" class="btn-nav">System Portal</a></li>
         </ul>
