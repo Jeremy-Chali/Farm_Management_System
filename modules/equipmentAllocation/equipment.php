@@ -45,7 +45,44 @@ if (!$connected) {
 $message = "";
 $message_type = "";
 
+// ---------------------------------------------------------
+// 1. ACTION HANDLERS (DELETE & EDIT / CREATE POST)
+// ---------------------------------------------------------
+
+// DELETE ACTION
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+    $delete_id = (int)$_GET['id'];
+    try {
+        $pdo->beginTransaction();
+
+        // Fetch log details to deduct hours from equipment table
+        $stmt = $pdo->prepare("SELECT equipment_id, hours_logged FROM equipment_allocations WHERE id = ?");
+        $stmt->execute([$delete_id]);
+        $existing = $stmt->fetch();
+
+        if ($existing) {
+            // Subtract hours from total_operating_hours
+            $deduct = $pdo->prepare("UPDATE equipment SET total_operating_hours = GREATEST(0, total_operating_hours - ?) WHERE id = ?");
+            $deduct->execute([$existing['hours_logged'], $existing['equipment_id']]);
+
+            // Delete record from equipment_allocations
+            $del_stmt = $pdo->prepare("DELETE FROM equipment_allocations WHERE id = ?");
+            $del_stmt->execute([$delete_id]);
+
+            $pdo->commit();
+            $message = "Allocation log deleted and equipment total hours adjusted successfully.";
+            $message_type = "success";
+        }
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $message = "Failed to delete record: " . $e->getMessage();
+        $message_type = "danger";
+    }
+}
+
+// SAVE ACTION (CREATE OR UPDATE)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $allocation_id = !empty($_POST['allocation_id']) ? (int)$_POST['allocation_id'] : null;
     $equipment_id = (int)($_POST['equipment_id'] ?? 0);
     $task_name = trim($_POST['task_name'] ?? '');
     $operator = trim($_POST['operator_name'] ?? '');
@@ -56,15 +93,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->beginTransaction();
 
-            $stmt = $pdo->prepare("INSERT INTO equipment_allocations (equipment_id, task_name, operator_name, hours_logged, allocation_date) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$equipment_id, $task_name, $operator, $hours_logged, $allocation_date]);
+            if ($allocation_id) {
+                // Fetch old log data to re-adjust operating hours
+                $old_stmt = $pdo->prepare("SELECT equipment_id, hours_logged FROM equipment_allocations WHERE id = ?");
+                $old_stmt->execute([$allocation_id]);
+                $old_data = $old_stmt->fetch();
 
-            $update = $pdo->prepare("UPDATE equipment SET total_operating_hours = total_operating_hours + ? WHERE id = ?");
-            $update->execute([$hours_logged, $equipment_id]);
+                if ($old_data) {
+                    // Reverse previous hours from original machine
+                    $rev_stmt = $pdo->prepare("UPDATE equipment SET total_operating_hours = GREATEST(0, total_operating_hours - ?) WHERE id = ?");
+                    $rev_stmt->execute([$old_data['hours_logged'], $old_data['equipment_id']]);
+                }
+
+                // Update allocation record
+                $stmt = $pdo->prepare("UPDATE equipment_allocations SET equipment_id = ?, task_name = ?, operator_name = ?, hours_logged = ?, allocation_date = ? WHERE id = ?");
+                $stmt->execute([$equipment_id, $task_name, $operator, $hours_logged, $allocation_date, $allocation_id]);
+
+                // Apply updated hours to equipment
+                $add_stmt = $pdo->prepare("UPDATE equipment SET total_operating_hours = total_operating_hours + ? WHERE id = ?");
+                $add_stmt->execute([$hours_logged, $equipment_id]);
+
+                $message = "Allocation record updated successfully.";
+                $message_type = "success";
+            } else {
+                // Insert new allocation record
+                $stmt = $pdo->prepare("INSERT INTO equipment_allocations (equipment_id, task_name, operator_name, hours_logged, allocation_date) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$equipment_id, $task_name, $operator, $hours_logged, $allocation_date]);
+
+                // Update equipment operating hours
+                $update = $pdo->prepare("UPDATE equipment SET total_operating_hours = total_operating_hours + ? WHERE id = ?");
+                $update->execute([$hours_logged, $equipment_id]);
+
+                $message = "Allocation record created and equipment operating hours updated successfully.";
+                $message_type = "success";
+            }
 
             $pdo->commit();
-            $message = "Allocation record created and equipment operating hours updated successfully.";
-            $message_type = "success";
         } catch (Exception $e) {
             $pdo->rollBack();
             $message = "Database Error: " . $e->getMessage();
@@ -76,15 +140,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch Metrics KPI Data
+// Fetch record for Edit mode
+$edit_data = null;
+if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
+    $edit_id = (int)$_GET['id'];
+    $stmt = $pdo->prepare("SELECT * FROM equipment_allocations WHERE id = ?");
+    $stmt->execute([$edit_id]);
+    $edit_data = $stmt->fetch();
+}
+
+// ---------------------------------------------------------
+// 2. FETCH DATA & METRICS FOR DISPLAY
+// ---------------------------------------------------------
+
 $total_hours = $pdo->query("SELECT SUM(hours_logged) AS grand_total FROM equipment_allocations")->fetch()['grand_total'] ?? 0;
 $total_allocations = $pdo->query("SELECT COUNT(id) AS total_count FROM equipment_allocations")->fetch()['total_count'] ?? 0;
 $total_machines = $pdo->query("SELECT COUNT(id) AS machine_count FROM equipment")->fetch()['machine_count'] ?? 0;
 
-// Fetch equipment dropdown options
 $equipment = $pdo->query("SELECT id, name, model, serial_number FROM equipment ORDER BY name ASC")->fetchAll();
 
-// Fetch allocation history table
 $sql = "SELECT a.*, e.name AS eq_name, e.model AS eq_model, e.serial_number AS eq_serial 
         FROM equipment_allocations a 
         JOIN equipment e ON a.equipment_id = e.id 
@@ -112,278 +186,83 @@ $allocations = $pdo->query($sql)->fetchAll();
             --transition: all 0.2s ease-in-out;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--light-bg); color: var(--text-dark); line-height: 1.6; }
 
-        body {
-            background-color: var(--light-bg);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-
-        /* Top Header Navigation matching fuel.php style */
         .top-header {
-            padding: 16px 5%;
-            background: var(--white);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
+            padding: 16px 5%; background: var(--white); box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex; justify-content: flex-end; align-items: center; border-bottom: 1px solid var(--border);
         }
 
         .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 18px;
-            background-color: var(--white);
-            color: var(--primary-dark);
-            font-weight: 600;
-            font-size: 0.85rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            text-decoration: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            transition: var(--transition);
+            display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px;
+            background-color: var(--white); color: var(--primary-dark); font-weight: 600;
+            font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border);
+            text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: var(--transition);
         }
 
         .btn-back svg {
-            width: 16px;
-            height: 16px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            transition: transform 0.2s ease-in-out;
+            width: 16px; height: 16px; fill: none; stroke: currentColor;
+            stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s ease-in-out;
         }
 
         .btn-back:hover {
-            background-color: var(--primary);
-            color: var(--white);
-            border-color: var(--primary);
-            box-shadow: 0 4px 10px rgba(27, 77, 62, 0.15);
-            transform: translateY(-1px);
+            background-color: var(--primary); color: var(--white); border-color: var(--primary);
+            box-shadow: 0 4px 10px rgba(27, 77, 62, 0.15); transform: translateY(-1px);
         }
 
-        .btn-back:hover svg {
-            transform: translateX(-3px);
-        }
+        .btn-back:hover svg { transform: translateX(-3px); }
 
-        /* Dashboard Container */
-        .dashboard-container {
-            max-width: 1300px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
+        .dashboard-container { max-width: 1300px; margin: 30px auto; padding: 0 20px; }
+        .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .page-header h1 { font-size: 1.8rem; color: var(--primary-dark); font-weight: 700; }
+        .page-header p { color: var(--text-light); font-size: 0.95rem; }
 
-        /* Header Section */
-        .page-header {
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .page-header h1 {
-            font-size: 1.8rem;
-            color: var(--primary-dark);
-            font-weight: 700;
-        }
-
-        .page-header p {
-            color: var(--text-light);
-            font-size: 0.95rem;
-        }
-
-        /* Alerts */
-        .alert {
-            padding: 14px 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .alert { padding: 14px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
         .alert-success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .alert-warning { background-color: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
         .alert-danger  { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
-        /* KPI Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: var(--white); padding: 22px 25px; border-radius: 12px; box-shadow: var(--card-shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
+        .kpi-card .kpi-label { font-size: 0.85rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .kpi-card .kpi-value { font-size: 1.9rem; font-weight: 700; color: var(--primary-dark); }
 
-        .kpi-card {
-            background: var(--white);
-            padding: 22px 25px;
-            border-radius: 12px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-        }
+        .dashboard-grid { display: grid; grid-template-columns: 360px 1fr; gap: 25px; align-items: start; }
+        .card { background: var(--white); border-radius: 12px; padding: 25px; box-shadow: var(--card-shadow); border: 1px solid var(--border); }
+        .card-title { font-size: 1.15rem; font-weight: 600; color: var(--primary-dark); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 
-        .kpi-card .kpi-label {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-dark); margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.92rem; transition: var(--transition); background-color: #fafafa; }
+        .form-control:focus { outline: none; border-color: var(--accent); background-color: var(--white); box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1); }
 
-        .kpi-card .kpi-value {
-            font-size: 1.9rem;
-            font-weight: 700;
-            color: var(--primary-dark);
-        }
+        .btn-primary { width: 100%; background-color: var(--primary); color: var(--white); padding: 12px; border: none; border-radius: 6px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: var(--transition); display: inline-block; text-align: center; text-decoration: none; }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+        .btn-secondary { background: #e2e8f0; color: var(--text-dark); margin-top: 10px; }
+        .btn-secondary:hover { background: #cbd5e1; }
 
-        /* Content Layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 360px 1fr;
-            gap: 25px;
-            align-items: start;
-        }
+        .btn-sm { padding: 5px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 4px; border: none; cursor: pointer; text-decoration: none; }
+        .btn-sm-edit { background: #e0f2fe; color: #0369a1; }
+        .btn-sm-edit:hover { background: #bae6fd; }
+        .btn-sm-danger { background: #fee2e2; color: #dc2626; }
+        .btn-sm-danger:hover { background: #fca5a5; }
 
-        .card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border);
-        }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { background-color: #f8faf9; color: var(--text-light); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 16px; text-align: left; border-bottom: 2px solid var(--border); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.92rem; color: var(--text-dark); vertical-align: middle; }
+        tr:hover td { background-color: #fbfdfc; }
 
-        .card-title {
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-        }
+        .badge-model { background: #e0f2fe; color: #0369a1; font-size: 0.78rem; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
+        .hours-tag { color: var(--primary); font-weight: 600; }
+        .actions-cell { display: flex; gap: 6px; }
 
-        /* Forms */
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 6px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.92rem;
-            transition: var(--transition);
-            background-color: #fafafa;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent);
-            background-color: var(--white);
-            box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1);
-        }
-
-        .btn-primary {
-            width: 100%;
-            background-color: var(--primary);
-            color: var(--white);
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-        }
-
-        /* Tables */
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        th {
-            background-color: #f8faf9;
-            color: var(--text-light);
-            font-weight: 600;
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 14px 16px;
-            text-align: left;
-            border-bottom: 2px solid var(--border);
-        }
-
-        td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.92rem;
-            color: var(--text-dark);
-            vertical-align: middle;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background-color: #fbfdfc;
-        }
-
-        .badge-model {
-            background: #e0f2fe;
-            color: #0369a1;
-            font-size: 0.78rem;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-
-        .hours-tag {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        @media (max-width: 992px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        @media (max-width: 992px) { .dashboard-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <!-- Top Header Navigation with fuel.php matching Back Button -->
     <header class="top-header">
         <a href="/Farm_Management_System/index.php" class="btn-back">
             <svg viewBox="0 0 24 24">
@@ -394,10 +273,8 @@ $allocations = $pdo->query($sql)->fetchAll();
         </a>
     </header>
 
-    <!-- Main Content Container -->
     <div class="dashboard-container">
         
-        <!-- Header -->
         <div class="page-header">
             <div>
                 <h1>Field Operations & Equipment Allocation</h1>
@@ -405,14 +282,12 @@ $allocations = $pdo->query($sql)->fetchAll();
             </div>
         </div>
 
-        <!-- Alert Notification -->
         <?php if (!empty($message)): ?>
             <div class="alert alert-<?= $message_type ?>">
                 <span><?= htmlspecialchars($message) ?></span>
             </div>
         <?php endif; ?>
 
-        <!-- KPI Metrics Bar -->
         <div class="kpi-grid">
             <div class="kpi-card">
                 <span class="kpi-label">Total Operating Hours Logged</span>
@@ -428,19 +303,22 @@ $allocations = $pdo->query($sql)->fetchAll();
             </div>
         </div>
 
-        <!-- Dashboard Layout Grid -->
         <div class="dashboard-grid">
             
             <!-- Left Panel: Allocation Form -->
             <div class="card">
-                <h2 class="card-title">New Task Allocation</h2>
-                <form action="" method="POST">
+                <h2 class="card-title"><?= $edit_data ? 'Edit Task Allocation' : 'New Task Allocation' ?></h2>
+                <form action="equipment.php" method="POST">
+                    <?php if ($edit_data): ?>
+                        <input type="hidden" name="allocation_id" value="<?= $edit_data['id'] ?>">
+                    <?php endif; ?>
+
                     <div class="form-group">
                         <label>Select Equipment Asset</label>
                         <select name="equipment_id" class="form-control" required>
                             <option value="">-- Select Machine --</option>
                             <?php foreach ($equipment as $eq): ?>
-                                <option value="<?= htmlspecialchars($eq['id']) ?>">
+                                <option value="<?= htmlspecialchars($eq['id']) ?>" <?= ($edit_data && $edit_data['equipment_id'] == $eq['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($eq['name']) ?> (<?= htmlspecialchars($eq['model']) ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -449,29 +327,33 @@ $allocations = $pdo->query($sql)->fetchAll();
 
                     <div class="form-group">
                         <label>Task / Field Operation</label>
-                        <input type="text" name="task_name" class="form-control" placeholder="e.g. Block C Harrowing" required>
+                        <input type="text" name="task_name" class="form-control" placeholder="e.g. Block C Harrowing" value="<?= $edit_data ? htmlspecialchars($edit_data['task_name']) : '' ?>" required>
                     </div>
 
                     <div class="form-group">
                         <label>Operator Name</label>
-                        <input type="text" name="operator_name" class="form-control" placeholder="e.g. John Mwansa" required>
+                        <input type="text" name="operator_name" class="form-control" placeholder="e.g. John Mwansa" value="<?= $edit_data ? htmlspecialchars($edit_data['operator_name']) : '' ?>" required>
                     </div>
 
                     <div class="form-group">
                         <label>Operating Hours Logged</label>
-                        <input type="number" step="0.1" min="0.1" name="hours_logged" class="form-control" placeholder="e.g. 6.5" required>
+                        <input type="number" step="0.1" min="0.1" name="hours_logged" class="form-control" placeholder="e.g. 6.5" value="<?= $edit_data ? htmlspecialchars($edit_data['hours_logged']) : '' ?>" required>
                     </div>
 
                     <div class="form-group">
                         <label>Allocation Date</label>
-                        <input type="date" name="allocation_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                        <input type="date" name="allocation_date" class="form-control" value="<?= $edit_data ? htmlspecialchars($edit_data['allocation_date']) : date('Y-m-d') ?>" required>
                     </div>
 
-                    <button type="submit" class="btn-primary">Record Allocation</button>
+                    <button type="submit" class="btn-primary"><?= $edit_data ? 'Update Allocation' : 'Record Allocation' ?></button>
+                    
+                    <?php if ($edit_data): ?>
+                        <a href="equipment.php" class="btn-primary btn-secondary">Cancel Edit</a>
+                    <?php endif; ?>
                 </form>
             </div>
 
-            <!-- Right Panel: Allocation History Table -->
+            <!-- Right Panel: Allocation Table with Edit & Delete Actions -->
             <div class="card">
                 <h2 class="card-title">Recent Field Allocation Logs</h2>
                 <div class="table-responsive">
@@ -484,6 +366,7 @@ $allocations = $pdo->query($sql)->fetchAll();
                                 <th>Task / Field</th>
                                 <th>Operator</th>
                                 <th>Hours</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -499,11 +382,15 @@ $allocations = $pdo->query($sql)->fetchAll();
                                     <td><?= htmlspecialchars($alloc['task_name']) ?></td>
                                     <td><?= htmlspecialchars($alloc['operator_name']) ?></td>
                                     <td class="hours-tag"><?= htmlspecialchars($alloc['hours_logged']) ?> hrs</td>
+                                    <td class="actions-cell">
+                                        <a href="equipment.php?action=edit&id=<?= $alloc['id'] ?>" class="btn-sm btn-sm-edit">Edit</a>
+                                        <a href="equipment.php?action=delete&id=<?= $alloc['id'] ?>" onclick="return confirm('Are you sure you want to delete this log? Equipment total hours will be updated.');" class="btn-sm btn-sm-danger">Delete</a>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6" style="text-align: center; color: var(--text-light); padding: 30px;">
+                                    <td colspan="7" style="text-align: center; color: var(--text-light); padding: 30px;">
                                         No allocation records found in system.
                                     </td>
                                 </tr>
